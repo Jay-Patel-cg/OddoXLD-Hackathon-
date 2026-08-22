@@ -1,5 +1,5 @@
 const express = require('express');
-const { testGemini } = require('../controllers/aiController');
+const { testGemini, generateTripPlan, saveTripPlan } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -13,5 +13,19 @@ router.use(protect);
  * @access  Private (JWT Protected)
  */
 router.get('/test', testGemini);
+
+/**
+ * @route   POST /api/ai/trip-plan/generate
+ * @desc    Generate structured AI Trip Plan (Stage 1)
+ * @access  Private (JWT Protected)
+ */
+router.post('/trip-plan/generate', generateTripPlan);
+
+/**
+ * @route   POST /api/ai/trip-plan/save
+ * @desc    Save AI Trip Plan to database (Stage 2)
+ * @access  Private (JWT Protected)
+ */
+router.post('/trip-plan/save', saveTripPlan);
 
 module.exports = router;

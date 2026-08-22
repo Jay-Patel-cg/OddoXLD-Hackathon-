@@ -64,11 +64,24 @@ const destinationSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    gallery: {
+      type: [String],
+      default: []
+    },
+    places: [
+      {
+        name: { type: String, required: true },
+        category: { type: String, default: 'Sightseeing' },
+        image: { type: String, default: '' },
+        description: { type: String, default: '' }
+      }
+    ],
     isActive: {
       type: Boolean,
       default: true
     }
   },
+
   {
     timestamps: true
   }

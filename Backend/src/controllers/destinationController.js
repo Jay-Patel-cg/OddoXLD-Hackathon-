@@ -167,14 +167,15 @@ const getDestinationById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid destination ID format'
-      });
+    let destination = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      destination = await Destination.findById(id);
     }
 
-    const destination = await Destination.findById(id);
+    if (!destination && id) {
+      destination = await Destination.findOne({ name: new RegExp(`^${id.trim()}$`, 'i') });
+    }
+
     if (!destination) {
       return res.status(404).json({
         success: false,

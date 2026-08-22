@@ -30,8 +30,14 @@ const userSchema = new mongoose.Schema(
     profileImage: {
       type: String,
       default: null
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true
     }
   },
+
   {
     timestamps: true
   }

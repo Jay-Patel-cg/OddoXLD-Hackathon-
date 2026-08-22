@@ -1,6 +1,7 @@
 const express = require('express');
 const healthRoutes = require('./healthRoutes');
 const authRoutes = require('./authRoutes');
+const tripRoutes = require('./tripRoutes');
 
 const router = express.Router();
 
@@ -10,9 +11,10 @@ router.use('/health', healthRoutes);
 // Auth Routes -> /api/auth
 router.use('/auth', authRoutes);
 
+// Trip Routes -> /api/trips
+router.use('/trips', tripRoutes);
+
 // Future API route mounts:
-// router.use('/users', userRoutes);
-// router.use('/trips', tripRoutes);
 // router.use('/destinations', destinationRoutes);
 // router.use('/itineraries', itineraryRoutes);
 // router.use('/activities', activityRoutes);

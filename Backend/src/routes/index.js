@@ -6,6 +6,7 @@ const activityRoutes = require('./activityRoutes');
 const expenseRoutes = require('./expenseRoutes');
 const destinationRoutes = require('./destinationRoutes');
 const tripStopRoutes = require('./tripStopRoutes');
+const aiRoutes = require('./aiRoutes');
 
 const router = express.Router();
 
@@ -17,6 +18,9 @@ router.use('/auth', authRoutes);
 
 // Destination Routes -> /api/destinations
 router.use('/destinations', destinationRoutes);
+
+// AI Routes -> /api/ai
+router.use('/ai', aiRoutes);
 
 // Trip Routes -> /api/trips
 router.use('/trips', tripRoutes);
@@ -31,4 +35,5 @@ router.use('/', activityRoutes);
 router.use('/', expenseRoutes);
 
 module.exports = router;
+
 

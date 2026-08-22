@@ -372,10 +372,84 @@ const deleteTrip = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get trip overview including trip details, stops, activities count, and expenses summary
+ * @route   GET /api/trips/:tripId/overview
+ * @access  Private (Trip members only)
+ */
+const getTripOverview = async (req, res, next) => {
+  try {
+    const { tripId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(tripId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid trip ID format'
+      });
+    }
+
+    const trip = await Trip.findById(tripId)
+      .populate('organizer', SAFE_USER_FIELDS)
+      .populate('participants', SAFE_USER_FIELDS);
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        message: 'Trip not found'
+      });
+    }
+
+    // Access control: User must be organizer OR participant
+    const userIdStr = req.user._id.toString();
+    const organizerIdStr = trip.organizer._id ? trip.organizer._id.toString() : trip.organizer.toString();
+    const isParticipant = trip.participants.some(
+      (p) => (p._id ? p._id.toString() : p.toString()) === userIdStr
+    );
+
+    if (organizerIdStr !== userIdStr && !isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You are not a participant or organizer of this trip'
+      });
+    }
+
+    const TripStop = require('../models/TripStop');
+    const stops = await TripStop.find({ trip: tripId })
+      .populate('destination')
+      .sort({ order: 1, arrivalDate: 1 });
+
+    const Activity = require('../models/Activity');
+    const activitiesCount = await Activity.countDocuments({ trip: tripId });
+
+    const Expense = require('../models/Expense');
+    const expenses = await Expense.find({ trip: tripId });
+    const totalSpent = Math.round(expenses.reduce((sum, exp) => sum + exp.amount, 0) * 100) / 100;
+    const remaining = Math.round(((trip.budget || 0) - totalSpent) * 100) / 100;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        trip,
+        stops,
+        activitiesCount,
+        expensesSummary: {
+          budget: trip.budget || 0,
+          currency: trip.currency || 'INR',
+          totalSpent,
+          remaining
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createTrip,
   getMyTrips,
   getTripById,
   updateTrip,
-  deleteTrip
+  deleteTrip,
+  getTripOverview
 };

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Activity = require('../models/Activity');
 const Trip = require('../models/Trip');
+const TripStop = require('../models/TripStop');
 
 const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ALLOWED_CATEGORIES = [
@@ -81,7 +82,8 @@ const createActivity = async (req, res, next) => {
       currency,
       category,
       notes,
-      order
+      order,
+      stop
     } = req.body;
 
     // 1. Validate title & date
@@ -108,7 +110,47 @@ const createActivity = async (req, res, next) => {
       });
     }
 
-    // 3. Validate times format and range
+    // 3. Validate optional TripStop connection
+    let stopId = null;
+    if (stop) {
+      if (!mongoose.Types.ObjectId.isValid(stop)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid stop ID format'
+        });
+      }
+
+      const stopDoc = await TripStop.findById(stop);
+      if (!stopDoc) {
+        return res.status(404).json({
+          success: false,
+          message: 'TripStop not found'
+        });
+      }
+
+      if (stopDoc.trip.toString() !== tripId.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'TripStop does not belong to this trip'
+        });
+      }
+
+      const stopArr = new Date(stopDoc.arrivalDate);
+      const stopDep = new Date(stopDoc.departureDate);
+      stopArr.setHours(0, 0, 0, 0);
+      stopDep.setHours(23, 59, 59, 999);
+
+      if (actDate < stopArr || actDate > stopDep) {
+        return res.status(400).json({
+          success: false,
+          message: 'Activity date must fall within the selected travel stop arrival and departure dates'
+        });
+      }
+
+      stopId = stopDoc._id;
+    }
+
+    // 4. Validate times format and range
     if (startTime && !TIME_REGEX.test(startTime)) {
       return res.status(400).json({
         success: false,
@@ -130,7 +172,7 @@ const createActivity = async (req, res, next) => {
       });
     }
 
-    // 4. Validate estimatedCost
+    // 5. Validate estimatedCost
     const numericCost = estimatedCost !== undefined ? Number(estimatedCost) : 0;
     if (isNaN(numericCost) || numericCost < 0) {
       return res.status(400).json({
@@ -139,7 +181,7 @@ const createActivity = async (req, res, next) => {
       });
     }
 
-    // 5. Validate category
+    // 6. Validate category
     if (category && !ALLOWED_CATEGORIES.includes(category)) {
       return res.status(400).json({
         success: false,
@@ -149,6 +191,7 @@ const createActivity = async (req, res, next) => {
 
     const activity = await Activity.create({
       trip: tripId,
+      stop: stopId,
       title,
       description,
       date: actDate,
@@ -162,11 +205,13 @@ const createActivity = async (req, res, next) => {
       order: order !== undefined ? Number(order) : 0
     });
 
+    const populatedActivity = await Activity.findById(activity._id).populate('stop');
+
     return res.status(201).json({
       success: true,
       message: 'Activity created successfully',
       data: {
-        activity
+        activity: populatedActivity
       }
     });
   } catch (error) {
@@ -327,7 +372,8 @@ const updateActivity = async (req, res, next) => {
       currency,
       category,
       notes,
-      order
+      order,
+      stop
     } = req.body;
 
     // Validate updated date if provided
@@ -344,6 +390,65 @@ const updateActivity = async (req, res, next) => {
         success: false,
         message: 'Activity date must fall within the trip date range'
       });
+    }
+
+    // Validate updated stop if provided
+    if (stop !== undefined) {
+      if (stop === null || stop === '') {
+        activity.stop = null;
+      } else {
+        if (!mongoose.Types.ObjectId.isValid(stop)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid stop ID format'
+          });
+        }
+
+        const stopDoc = await TripStop.findById(stop);
+        if (!stopDoc) {
+          return res.status(404).json({
+            success: false,
+            message: 'TripStop not found'
+          });
+        }
+
+        if (stopDoc.trip.toString() !== trip._id.toString()) {
+          return res.status(400).json({
+            success: false,
+            message: 'TripStop does not belong to this trip'
+          });
+        }
+
+        const stopArr = new Date(stopDoc.arrivalDate);
+        const stopDep = new Date(stopDoc.departureDate);
+        stopArr.setHours(0, 0, 0, 0);
+        stopDep.setHours(23, 59, 59, 999);
+
+        if (newDate < stopArr || newDate > stopDep) {
+          return res.status(400).json({
+            success: false,
+            message: 'Activity date must fall within the selected travel stop arrival and departure dates'
+          });
+        }
+
+        activity.stop = stopDoc._id;
+      }
+    } else if (activity.stop && date !== undefined) {
+      // Re-verify existing stop date range if date changed
+      const stopDoc = await TripStop.findById(activity.stop);
+      if (stopDoc) {
+        const stopArr = new Date(stopDoc.arrivalDate);
+        const stopDep = new Date(stopDoc.departureDate);
+        stopArr.setHours(0, 0, 0, 0);
+        stopDep.setHours(23, 59, 59, 999);
+
+        if (newDate < stopArr || newDate > stopDep) {
+          return res.status(400).json({
+            success: false,
+            message: 'Activity date must fall within the selected travel stop arrival and departure dates'
+          });
+        }
+      }
     }
 
     // Validate updated times if provided
@@ -406,11 +511,13 @@ const updateActivity = async (req, res, next) => {
 
     await activity.save();
 
+    const updatedActivity = await Activity.findById(activity._id).populate('stop');
+
     return res.status(200).json({
       success: true,
       message: 'Activity updated successfully',
       data: {
-        activity
+        activity: updatedActivity
       }
     });
   } catch (error) {

@@ -22,6 +22,12 @@ const activitySchema = new mongoose.Schema(
       required: [true, 'Activity must be linked to a parent Trip'],
       index: true
     },
+    stop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'TripStop',
+      default: null,
+      index: true
+    },
     title: {
       type: String,
       required: [true, 'Please provide an activity title'],

@@ -4,6 +4,8 @@ const authRoutes = require('./authRoutes');
 const tripRoutes = require('./tripRoutes');
 const activityRoutes = require('./activityRoutes');
 const expenseRoutes = require('./expenseRoutes');
+const destinationRoutes = require('./destinationRoutes');
+const tripStopRoutes = require('./tripStopRoutes');
 
 const router = express.Router();
 
@@ -13,8 +15,14 @@ router.use('/health', healthRoutes);
 // Auth Routes -> /api/auth
 router.use('/auth', authRoutes);
 
+// Destination Routes -> /api/destinations
+router.use('/destinations', destinationRoutes);
+
 // Trip Routes -> /api/trips
 router.use('/trips', tripRoutes);
+
+// Trip Stop Routes -> /api/trips/:tripId/stops & /api/stops/:id
+router.use('/', tripStopRoutes);
 
 // Activity Routes -> /api/trips/:tripId/activities & /api/activities/:id
 router.use('/', activityRoutes);
@@ -23,3 +31,4 @@ router.use('/', activityRoutes);
 router.use('/', expenseRoutes);
 
 module.exports = router;
+

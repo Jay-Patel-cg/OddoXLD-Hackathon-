@@ -1,5 +1,6 @@
 const geminiService = require('../services/ai/geminiService');
 const tripPlannerService = require('../services/ai/tripPlannerService');
+const aiAssistantService = require('../services/ai/aiAssistantService');
 
 /**
  * @desc    Test Gemini AI connectivity
@@ -86,8 +87,44 @@ const saveTripPlan = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    AI Travel Copilot Assistant
+ * @route   POST /api/ai/assistant
+ * @access  Private (JWT Protected)
+ */
+const handleAssistant = async (req, res, next) => {
+  try {
+    const result = await aiAssistantService.handleAssistantRequest(req.body, req.user._id);
+
+    const messageStr = result.executed
+      ? 'AI assistant action executed successfully'
+      : 'AI assistant response generated successfully';
+
+    return res.status(200).json({
+      success: true,
+      message: messageStr,
+      data: {
+        action: result.action,
+        response: result.response,
+        reasoning: result.reasoning,
+        changes: result.changes,
+        executed: result.executed
+      }
+    });
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({
+        success: false,
+        message: error.message
+      });
+    }
+    next(error);
+  }
+};
+
 module.exports = {
   testGemini,
   generateTripPlan,
-  saveTripPlan
+  saveTripPlan,
+  handleAssistant
 };

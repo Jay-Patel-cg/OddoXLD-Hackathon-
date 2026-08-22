@@ -1,5 +1,5 @@
 const express = require('express');
-const { testGemini, generateTripPlan, saveTripPlan } = require('../controllers/aiController');
+const { testGemini, generateTripPlan, saveTripPlan, handleAssistant } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -27,5 +27,12 @@ router.post('/trip-plan/generate', generateTripPlan);
  * @access  Private (JWT Protected)
  */
 router.post('/trip-plan/save', saveTripPlan);
+
+/**
+ * @route   POST /api/ai/assistant
+ * @desc    AI Travel Copilot assistant for Q&A, recommendations & itinerary actions
+ * @access  Private (JWT Protected)
+ */
+router.post('/assistant', handleAssistant);
 
 module.exports = router;
